@@ -8,8 +8,8 @@ Options:
 -d DEPTH      Depth parameter used for CTW [default: 48]
 """
 
-from . import PTW, FMN, KT, CTW_KT, CTS_KT
-from .ac import compress_bytes, decompress_bytes
+from seq_predict import PTW, FMN, KT, CTW_KT, CTS_KT
+from seq_predict.ac import compress_bytes, decompress_bytes
 
 import docopt
 import os
@@ -20,7 +20,7 @@ import resource
 
 def progress_bar(frac):
     bar_length = 60
-    prog_length = int(frac * bar_length) 
+    prog_length = int(frac * bar_length)
 
     bar = []
     bar = prog_length * '=' + ('>' + (bar_length - prog_length - 1) * ' ' if prog_length < bar_length else '')
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
 
     depth = int(args['-d'])
-    
+
     if args['-m'] == "CTW":
         probmodel = CTW_KT(depth)
     elif args['-m'] == "CTS":
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     infile = args['INFILE']
     outfile = args['OUTFILE']
-        
+
     if args['compress']:
         msglen = os.path.getsize(infile)
         codelen = 0
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         start_time = time.time()
         with open(infile, 'rb') as infs, open(outfile, 'wb') as outfs:
             outfs.write(msglen.to_bytes(4, sys.byteorder))
-            
+
             for b in compress_bytes(probmodel, _bytes_with_progress(infs, msglen)):
                 codelen += 1
                 outfs.write(bytes([b]))

@@ -9,7 +9,7 @@ The functions and classes all need predictive models; see model.py
 import math
 import itertools
 
-from . import CTW
+from seq_predict import CTW
 
 def grouper(n, iterable, fillvalue=None):
     args = [iter(iterable)] * n
@@ -68,18 +68,18 @@ class BinaryArithmeticEncoder:
 
     See also: BinaryArithmeticDecoder, compress, and compress_bytes
     """
-    
+
     def __init__(self, model, num_bits = 32):
         self.model = model
         self.num_bits = num_bits
 
-        self._top = 2 ** self.num_bits 
+        self._top = 2 ** self.num_bits
         self._half = self._top // 2  # [0, self._half) is outputs the zero bit
         self._1_4 = self._half // 2
         self._3_4 = self._top - self._1_4
 
         self.low = 0 # Interval is [self.low, self.high)
-        self.high = self._top 
+        self.high = self._top
         self.follow_bits = 0 # Opposing bits to follow the next output'd bit
 
         self.history = []
@@ -90,20 +90,20 @@ class BinaryArithmeticEncoder:
         The encoder is stateful and (since it is hopefully compressing the input) it will not
         return output bits for each input symbol.
 
-        You will need to flush the encoder to get remaining coded bits after encoding the 
+        You will need to flush the encoder to get remaining coded bits after encoding the
         complete sequence.
         """
-        
+
         output = []
 
-        # Find the split point 
+        # Find the split point
         p_zero = self.model.predict(0, self.history)
         split = self.low + max(1, int((self.high - self.low) * p_zero)) # 0-interval is [self.low, split)
 
         # Update the model
         self.model.update(symbol, self.history)
         self.history.append(symbol)
-        
+
         # Update the range based on the observed symbol
         if symbol:
             self.low = split
@@ -120,7 +120,7 @@ class BinaryArithmeticEncoder:
         #   we already know it's at the high end of the lower half, so we follow
         #   with a 1.
         # If this happens a second time before outputting any bit, then there will
-        #   need to be 2 of these follow bits.  So we track this by just incrementing 
+        #   need to be 2 of these follow bits.  So we track this by just incrementing
         #   a follow bit counter.
         #
         # This is in a loop because the new range may not overlap the new midpoint,
@@ -164,11 +164,11 @@ class BinaryArithmeticDecoder:
     def __init__(self, model, num_bits = 32):
         self.model = model
         self.num_bits = num_bits
-        self._top = 2 ** self.num_bits 
+        self._top = 2 ** self.num_bits
         self._half = self._top // 2 # [0, self._half) outputs the zero bit
         self._1_4 = self._half // 2
         self._3_4 = self._top - self._1_4
-        self.low = 0 
+        self.low = 0
         self.high = 1 # This ensures num_bits are read before decoding
         self.value = 0
 
@@ -184,7 +184,7 @@ class BinaryArithmeticDecoder:
         elif self.low >= self._1_4 and self.high <= self._3_4:
             self.value -= self._1_4
             self.low -= self._1_4
-            self.high -= self._1_4            
+            self.high -= self._1_4
 
         self.low *= 2
         self.high *= 2
@@ -201,7 +201,7 @@ class BinaryArithmeticDecoder:
             output.append(symbol)
             self.model.update(symbol, self.history)
             self.history.append(symbol)
-            
+
             if symbol:
                 self.low = split
             else:
