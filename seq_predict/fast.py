@@ -3,7 +3,7 @@ import math
 import re
 import os
 
-from .model import Model
+from seq_predict.model import Model
 
 class FFIMixin:
     """Class mixin to handle loading FFI code with different parameterizations.
@@ -30,7 +30,7 @@ class FFIMixin:
             cls._ffi_cache[defs] = ffi.verify(cls._ffi_prep_code(defs, cls._ffi_code_c), extra_compile_args=["-std=c99"])
         return cls._ffi_cache[defs]
 
-    
+
 class CTW_KT(Model, FFIMixin):
     """Context Tree Weighting over KT models with a fixed integer alphabet.
 
@@ -40,24 +40,24 @@ class CTW_KT(Model, FFIMixin):
 
     _ffi_code_h = open(os.path.join(os.path.dirname(__file__), "fast_ctwnode.h"), "r").read()
     _ffi_code_c = open(os.path.join(os.path.dirname(__file__), "fast_ctwnode.c"), "r").read()
-    
+
     __slots__ = [ "tree", "depth", "c" ]
 
     def __init__(self, depth, alphabet_size=2, kt_sum_counts=1.0,
                  mkcontext=None):
-        self.mkcontext = mkcontext if mkcontext else self._mkcontext 
+        self.mkcontext = mkcontext if mkcontext else self._mkcontext
         self.c = self._ffi(ALPHABET_SIZE=alphabet_size,
                            KT_SUM_COUNTS=kt_sum_counts)
         self.depth = depth
         self.tree = self.c.ctwnode_new()
-        
+
     def __del__(self):
         self.c.ctwnode_free(self.tree)
 
     def _mkcontext(self, x):
         padding = self.depth - len(x)
         return bytes([0] * padding + x[-self.depth:])
-        
+
     def update(self, symbol, history):
         context = self.mkcontext(history)
         return self.c.ctwnode_update(self.tree, symbol, context, self.depth)
@@ -77,7 +77,7 @@ class CTW_KT(Model, FFIMixin):
         r.depth = self.depth
         r.tree = self.c.ctwnode_copy(self.tree)
         return r
-        
+
 
 class CTS_KT(Model, FFIMixin):
     """Context Tree Weighting over KT models with a fixed integer alphabet.
@@ -88,20 +88,20 @@ class CTS_KT(Model, FFIMixin):
 
     _ffi_code_h = open(os.path.join(os.path.dirname(__file__), "fast_ctsnode.h"), "r").read()
     _ffi_code_c = open(os.path.join(os.path.dirname(__file__), "fast_ctsnode.c"), "r").read()
-    
+
     __slots__ = [ "tree", "depth", "c", "t" ]
 
     def __init__(self, depth, alphabet_size=2,
                  kt_sum_counts=0.125, base_prior=0.125,
                  mkcontext=None):
-        self.mkcontext = mkcontext if mkcontext else self._mkcontext 
+        self.mkcontext = mkcontext if mkcontext else self._mkcontext
         self.c = self._ffi(ALPHABET_SIZE=alphabet_size,
                            KT_SUM_COUNTS=kt_sum_counts,
                            BASE_PRIOR=base_prior)
         self.depth = depth
         self.tree = self.c.ctsnode_new()
         self.t = 0
-        
+
     def __del__(self):
         self.c.ctsnode_free(self.tree)
 
@@ -112,7 +112,7 @@ class CTS_KT(Model, FFIMixin):
     @property
     def alpha(self):
         return 1.0 / (self.t + 3)
-    
+
     def update(self, symbol, history):
         context = self.mkcontext(history)
 
@@ -140,5 +140,5 @@ class CTS_KT(Model, FFIMixin):
         r.tree = self.c.ctsnode_copy(self.tree)
         r.t = self.t
         return r
-        
-    
+
+
